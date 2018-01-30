@@ -28,10 +28,10 @@ from kivy.clock import mainthread, Clock
 from kivy.graphics.texture import Texture
 from kivy.lang import Builder
 from kivy.properties import ObjectProperty, BooleanProperty, NumericProperty, StringProperty
-from kivy.garden.graph import Graph, MeshLinePlot
 from kivy import resources
 
-from .utils import get_color_from_hex as rgb, measure_temp
+from .utils import measure_temp
+from .plotscreen import PlotScreen
 
 # this is needed so kv files can find images
 resources.resource_add_path(
@@ -136,34 +136,6 @@ class CamScreen(Screen):
                 fm = cv2.Laplacian(gray, cv2.CV_64F).var()
 
                 self.dispatch('on_new_measure', fm)
-
-
-class PlotScreen(Screen):
-    def init(self):
-        # use kivy garden's graph widget
-        graph = Graph(xlabel='x', ylabel='F', x_ticks_minor=5, x_ticks_major=10,
-                      y_ticks_minor=1, y_ticks_major=5, y_grid_label=True,
-                      x_grid_label=False, padding=0, y_grid=False, x_grid=False,
-                      xmin=0, ymin=0, xmax=100, ymax=30,
-                      _with_stencilbuffer=False,  # or it does not work in ScreenManager
-                      label_options={'color': rgb('000000')})
-        y = (float(i) for i in range(50))
-        x = (float(i) for i in range(50))
-        plot = MeshLinePlot(color=rgb('1100ff'))
-        pts = list(zip(x, y))
-        plot.points = pts
-        graph.add_plot(plot)
-
-        self.ids.plot.add_widget(graph)
-
-        self.plot = plot
-        self.graph = graph
-
-    def update_plot(self, values):
-        self.plot.points = zip(range(len(values)), values)
-
-        self.graph.ymax = int(max(values) + 5)
-        self.graph.ymin = int(min(values) - 5)
 
 
 class CamApp(App):
