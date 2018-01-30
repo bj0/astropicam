@@ -1,0 +1,77 @@
+#: include plotscreen.kv
+
+<ImageButton@ButtonBehavior+Image>:
+    size: '50dp', '50dp'
+    size_hint: None, None
+    background_normal: ''
+    background_color: 0, 0, 0, 0
+
+BoxLayout:
+    sm: sm
+    orientation: 'vertical'
+
+    canvas:
+        Rectangle:
+            size: self.size
+            pos: self.pos
+            texture: app.tex  # cannot reference cam here: https://github.com/kivy/kivy/issues/1709
+
+    FloatLayout:
+        ScreenManager:
+            pos_hint: {'top': 1.0}
+            id: sm
+            CamScreen:
+                id: cam
+                name: 'camera'
+            PlotScreen:
+                id: plot_screen
+                on_enter: cam.measure = True
+                on_leave: cam.measure = False
+
+        Label:
+            size_hint: None, None
+            pos_hint: {'top': 1.0}
+            size: 75, 75
+            color: 1, 0, 0, 1
+            font_size: '20sp'
+            text: app.temperature
+
+
+    AnchorLayout:
+        anchor_x: 'right'
+        anchor_y: 'center'
+        size_hint: 1, None
+        size: 0, '60dp'
+
+        BoxLayout:
+            orientation: 'horizontal'
+            spacing: 5
+            padding: 5
+            size_hint: 1, 1
+            size: 1, 0
+
+            Widget:
+
+            ImageButton:
+                id: zoom_button
+                source: 'zoom.png'
+                on_press: cam.zoom()
+
+            ImageButton:
+                id: plot_button
+                source: 'plot.png'
+                on_press: sm.current = 'camera' if sm.current == 'plot' else 'plot'
+
+            ImageButton:
+                id: record_button
+                source: 'record_off.png' if not cam.recording else 'record_on.png'
+                on_press: cam.record()
+
+            ImageButton:
+                source: 'capture.png'
+                on_press: cam.capture()
+
+            ImageButton:
+                id: play_button
+                source: 'play.png' if not cam.playing else 'pause.png'
+                on_press: cam.play()

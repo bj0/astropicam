@@ -1,0 +1,15 @@
+<PlotScreen>:
+    name: 'plot'
+    AnchorLayout:
+        anchor_y: 'top'
+        anchor_x: 'right'
+        Label:
+            text: app.current
+
+    AnchorLayout:
+        canvas:
+            Color:
+                rgba: .4,.4,.4,.8
+            Line:
+                rectangle: self.x+5, self.y+5, self.width-10, self.height-10
+        id: plot
