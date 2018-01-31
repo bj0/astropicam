@@ -1,6 +1,7 @@
 import time
 
 import cv2
+import numpy as np
 import picam.config as cfg
 from kivy.properties import ObjectProperty, BooleanProperty, NumericProperty
 from kivy.uix.image import Image
