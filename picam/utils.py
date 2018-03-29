@@ -1,4 +1,7 @@
+import queue
 import re
+import threading
+from functools import wraps
 
 
 def get_color_from_hex(s):
@@ -32,3 +35,67 @@ def measure_temp():
     with open('/sys/class/thermal/thermal_zone0/temp') as f:
         temp = f.readline()
         return int(temp) / 1000.0
+
+
+def doublewrap(f):
+    """
+        a decorator decorator, allowing the decorator to be used as:
+        @decorator(with, arguments, and=kwargs)
+        or
+        @decorator
+    """
+
+    @wraps(f)
+    def new_dec(*args, **kwargs):
+        if len(args) == 1 and len(kwargs) == 0 and callable(args[0]):
+            return f(args[0])
+        else:
+            return lambda realf: f(realf, *args, **kwargs)
+
+    return new_dec
+
+
+@doublewrap
+def threaded(f, daemon=False):
+    """
+     a decorator to make a function execute in a new thread.
+     a new thread is created and returned from the initial function call.
+     the thread object has an attached queue object 'result_queue' that
+     receives the result of the function call.
+
+     ie:
+         >> @threaded
+             def fun( ... ):
+                 ...
+                 return result
+
+         >> to = fun( ... )  # does not block
+         >> to.result_queue
+         <Queue.Queue instance at 0x...>
+         >> to.result_queue.get()  # blocks
+     """
+
+    def wrapped_f(q, *args, **kwargs):
+        """
+        this function calls the decorated function and puts the
+        result in a queue
+        """
+
+        ret = f(*args, **kwargs)
+        q.put(ret)
+
+    def wrap(*args, **kwargs):
+        """
+        this is the function returned from the decorator, it fires off
+        wrapped_f in a new thread and returns the thread object with
+        the result queue attached
+        """
+        q = queue.Queue()
+
+        t = threading.Thread(target=wrapped_f, args=(q,) + args, kwargs=kwargs)
+        t.daemon = daemon
+        t.start()
+        t.result_queue = q
+        return t
+
+    return wrap
