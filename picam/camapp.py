@@ -18,6 +18,8 @@ class CamApp(App):
     temperature = StringProperty('0°')
     values = deque([0] * 100)
 
+    _P = 1.0
+
     def __init__(self, camera):
         super(CamApp, self).__init__()
         self.cam = camera
@@ -41,7 +43,11 @@ class CamApp(App):
         return root
 
     def update_measure(self, _, fm):
-        fme = self.values[-1] * self.alpha + (1 - self.alpha) * fm
+        # use 1-d kalman filter
+        xh = self.values[-1]
+        k = self._P / (self._P + 0.5)
+        fme = xh + k * (fm - xh)
+        self._P = (1 - k) * self._P
 
         self.values.popleft()
         self.values.append(fme)
