@@ -3,7 +3,7 @@ from collections import deque
 
 from kivy.app import App
 from kivy.lang import Builder
-from kivy.properties import ObjectProperty, NumericProperty, StringProperty, Clock
+from kivy.properties import ObjectProperty, NumericProperty, StringProperty, Clock, BooleanProperty
 
 from picam.utils import measure_temp
 
@@ -13,10 +13,10 @@ class CamApp(App):
     Main App Class
     """
     tex = ObjectProperty(None)
-    alpha = NumericProperty(0.90)
     current = StringProperty("0")
     temperature = StringProperty('0°')
     values = deque([0] * 100)
+    # save_frames = BooleanProperty(False)
 
     _P = 1.0
 
@@ -25,18 +25,22 @@ class CamApp(App):
         self.cam = camera
 
     def build(self):
+        # load root
         root = Builder.load_file('camapp.kv')
-        root.ids.cam.init(self.cam)
-        self.tex = root.ids.cam.tex
-        root.ids.cam.bind(tex=self.setter('tex'))  # ugly workaround
-        root.ids.cam.texout.bind(on_update=lambda *x: root.canvas.ask_update())
-
-        root.ids.plot_screen.init()
-
-        root.ids.cam.bind(on_new_measure=self.update_measure)
-
         self.cam_screen = root.ids.cam
         self.plot_screen = root.ids.plot_screen
+
+        # CamScreen needs the camera object, and we need it's texture
+        self.cam_screen.init(self.cam)
+        self.tex = self.cam_screen.tex
+        self.cam_screen.bind(tex=self.setter('tex'))  # ugly workaround
+        # redraw on texture change
+        self.cam_screen.texout.bind(on_update=lambda *x: root.canvas.ask_update())
+
+        # create plot
+        self.plot_screen.init()
+
+        self.cam_screen.bind(on_new_measure=self.update_measure)
 
         Clock.schedule_interval(self.update_temperature, 3)
 
@@ -52,7 +56,7 @@ class CamApp(App):
         self.values.popleft()
         self.values.append(fme)
 
-        # print('new measure: {}'.format(fme))
+        print('new measure: {}'.format(fme))
         self.plot_screen.update_plot(self.values)
         self.current = "{}".format(int(fme))
 
