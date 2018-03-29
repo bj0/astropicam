@@ -1,0 +1,36 @@
+#: import MeasureType picam.camscreen.MeasureType
+#: import StretchType picam.textureoutput.StretchType
+
+<FocusDropDown@DropDown>:
+    Button:
+        size: '45dp', '45dp'
+        size_hint: None, None
+        text: 'HFR'
+        on_release: root.select(MeasureType.HFR)
+
+    Button:
+        size: '45dp', '45dp'
+        size_hint: None, None
+        text: 'LP'
+        on_release: root.select(MeasureType.LP)
+
+
+<StretchDropDown@DropDown>:
+    Button:
+        size: '45dp', '45dp'
+        size_hint: None, None
+        text: 'LIN'
+        on_release: root.select(StretchType.LINEAR)
+
+    Button:
+        size: '45dp', '45dp'
+        size_hint: None, None
+        text: 'SQRT'
+        on_release: root.select(StretchType.SQRT)
+
+    Button:
+        size: '45dp', '45dp'
+        size_hint: None, None
+        text: 'ASIN'
+        on_release: root.select(StretchType.ASIN)
+
