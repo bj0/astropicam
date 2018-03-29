@@ -5,10 +5,14 @@
 # * add full image capture?
 # * calf fwhm?
 # * add temperature
+# * add saving frames?
 import os
 
-import picam.config as cfg
+from kivy.config import Config
+Config.set('graphics', 'width', '320')
+Config.set('graphics', 'height', '240')
 
+import picam.config as cfg
 from picam.camapp import CamApp
 
 try:
@@ -38,5 +42,5 @@ if __name__ == '__main__':
     if cfg.FAKE:
         CamApp(None).run()
     else:
-        with picamera.PiCamera(sensor_mode=4) as camera:
+        with picamera.PiCamera(sensor_mode=4, framerate=cfg.FRAME_RATE) as camera:
             CamApp(camera).run()
