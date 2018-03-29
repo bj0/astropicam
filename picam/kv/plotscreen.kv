@@ -3,15 +3,23 @@
 <PlotScreen>:
     name: 'plot'
     AnchorLayout:
+        padding: 5, 40
         anchor_y: 'top'
         anchor_x: 'right'
+
         Label:
+            canvas:
+                Color:
+                    rgba: 0,0,0,.2
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
+
+            size: '50dp', '50dp'
+            font_size: '18sp'
+            size_hint: None, None
             text: app.current
 
     AnchorLayout:
-        canvas:
-            Color:
-                rgba: .4,.4,.4,.8
-            Line:
-                rectangle: self.x+5, self.y+5, self.width-10, self.height-10
+        padding: 0, 0, 60, 0
         id: plot
