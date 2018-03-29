@@ -1,78 +1,155 @@
 #: include plotscreen.kv
+#: include dropdowns.kv
+#: include settings.kv
 #: import CamScreen picam.camscreen.CamScreen
+#: import QScreenManager picam.qscreenmanager.QScreenManager
 
+# a button with an image!
 <ImageButton@ButtonBehavior+Image>:
-    size: '50dp', '50dp'
+    size: '45dp', '45dp'
     size_hint: None, None
     background_normal: ''
     background_color: 0, 0, 0, 0
 
-BoxLayout:
-    sm: sm
-    orientation: 'vertical'
+# an anchor layout that doesn't draw children when 'hidden'
+<AnchorStencil@AnchorLayout+StencilView>:
 
+# root layout holds side menu, image texture, and toolbar
+FloatLayout:
     canvas:
         Rectangle:
             size: self.size
             pos: self.pos
             texture: app.tex  # cannot reference cam here: https://github.com/kivy/kivy/issues/1709
 
-    FloatLayout:
-        ScreenManager:
-            pos_hint: {'top': 1.0}
-            id: sm
-            CamScreen:
-                id: cam
-                name: 'camera'
-            PlotScreen:
-                id: plot_screen
-                on_enter: cam.measure = True
-                on_leave: cam.measure = False
+    # screen manager on top, toolbar on bottom
+    BoxLayout:
+        sm: sm
+        orientation: 'vertical'
 
-        Label:
-            size_hint: None, None
-            pos_hint: {'top': 1.0}
-            size: 75, 75
-            color: 1, 0, 0, 1
-            font_size: '20sp'
-            text: app.temperature
+        # screen manager and temperature label
+        FloatLayout:
+            QScreenManager:
+                pos_hint: {'top': 1.0}
+                id: sm
+                CamScreen:
+                    id: cam
+                    name: 'camera'
+                PlotScreen:
+                    id: plot_screen
+                    on_enter: cam.measure = True
+                    on_leave: cam.measure = False
+                SettingsScreen:
+                    id: settings_screen
+                    name: 'settings'
 
+            Label:
+                size_hint: None, None
+                pos_hint: {'top': 1.0, 'right': 1.0}
+                size: '50dp', '50dp'
+                color: 1, 0, 0, 1
+                font_size: '20sp'
+                text: app.temperature
 
-    AnchorLayout:
-        anchor_x: 'right'
-        anchor_y: 'center'
-        size_hint: 1, None
-        size: 0, '60dp'
+        # toolbar
+        AnchorLayout:
+            anchor_x: 'right'
+            anchor_y: 'center'
+            size_hint: 1, None
+            size: 0, '60dp'
+
+            BoxLayout:
+                orientation: 'horizontal'
+                spacing: 5
+                padding: 5
+                size_hint: 1, 1
+
+				Widget: # spacer
+
+                ImageButton:
+                    source: 'settings.png'
+                    on_press: nav.width = 1 if nav.width != 1 else '60dp'
+
+                ImageButton:
+                    id: plot_button
+                    source: 'plot_on.png' if sm.current == 'plot' else 'plot.png'
+                    on_press: sm.toggle('plot')
+
+                ImageButton:
+                    id: record_button
+                    source: 'record_off.png' if not cam.recording else 'record_on.png'
+                    on_press: cam.record()
+
+                ImageButton:
+                    source: 'capture.png'
+                    on_press: cam.capture()
+
+                ImageButton:
+                    id: play_button
+                    source: 'play.png' if not cam.playing else 'pause.png'
+                    on_press: cam.play()
+
+    # side menu
+    AnchorStencil:
+        id: nav
+        size_hint: None, 1
+        width: 1 #'60dp'
+
+        anchor_x: 'center'
+        anchor_y: 'top'
+
+        canvas:
+            Color:
+                rgba: 0.5,0.5,0.5,0.4
+            Rectangle:
+                size: self.size
+                pos: self.pos
+
+        # focus options
+        FocusDropDown:
+            id: focus_dropdown
+            on_select:
+                cam.measure_type = args[1]
+
+        # stretch options
+        StretchDropDown:
+            id: stretch_dropdown
+            on_select:
+                cam.texout.stretch_type = args[1]
 
         BoxLayout:
-            orientation: 'horizontal'
+            orientation: 'vertical'
             spacing: 5
             padding: 5
             size_hint: 1, 1
-            size: 1, 0
 
-            Widget:
+            # toggle stretch
+            ImageButton:
+                source: 'atom.png' if not cam.texout.do_stretch else 'atom_on.png'
+                on_press: cam.texout.do_stretch = not cam.texout.do_stretch
+
+            # choose which stretch to use
+            Button:
+                size: '45dp', '40dp'
+                size_hint: None, None
+                text: cam.texout.stretch_type.name
+                on_press: stretch_dropdown.open(self)
+
+            # choose which focus method to use
+            Button:
+                size: '45dp', '40dp'
+                size_hint: None, None
+                text: cam.measure_type.name
+                on_press: focus_dropdown.open(self)
 
             ImageButton:
                 id: zoom_button
-                source: 'zoom.png'
+                source: {1:'zoom.png',2:'zoom_1.png',3:'zoom_2.png'}[cam.zoom_factor]
                 on_press: cam.zoom()
 
             ImageButton:
-                id: plot_button
-                source: 'plot.png'
-                on_press: sm.current = 'camera' if sm.current == 'plot' else 'plot'
+                source: 'advanced_settings.png'
+                on_press: sm.toggle('settings')
 
-            ImageButton:
-                id: record_button
-                source: 'record_off.png' if not cam.recording else 'record_on.png'
-                on_press: cam.record()
 
-            ImageButton:
-                source: 'capture.png'
-                on_press: cam.capture()
-
-            ImageButton:
-                id: play_button
-                source: 'play.png' if not cam.playing else 'pause.png'
-                on_press: cam.play()
+            Widget: # spacer
