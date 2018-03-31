@@ -2,6 +2,7 @@ import queue
 import re
 import threading
 from functools import wraps
+from time import sleep
 
 
 def get_color_from_hex(s):
@@ -99,3 +100,26 @@ def threaded(f, daemon=False):
         return t
 
     return wrap
+
+
+@threaded
+def set_camera_mode(cam, aem, framerate=None, mode=None):
+    cam.exposure_mode = 'auto'
+    if mode is not None:
+        cam.sensor_mode = mode
+    if framerate is not None:
+        cam.framerate = framerate
+
+    sleep(3)
+    cam.exposure_mode = aem
+
+    print_sensor(cam)
+
+
+def print_sensor(cam):
+    print('Sensor:')
+    print(' mode:', cam.sensor_mode)
+    print(' framerate:', cam.framerate)
+    print(' res:', cam.resolution)
+    print(' exposure:', cam.exposure_mode)
+    print(' iso:', cam.iso)

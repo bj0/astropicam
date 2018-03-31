@@ -5,18 +5,22 @@ from astropy.visualization import SqrtStretch, LinearStretch, AsinhStretch
 from kivy.clock import mainthread
 from kivy.event import EventDispatcher
 from kivy.graphics.texture import Texture
-from kivy.properties import BooleanProperty, ObjectProperty
+from kivy.properties import BooleanProperty, ConfigParserProperty
 
 
 class StretchType(Enum):
-    LINEAR = 1
-    SQRT = 2
+    LINEAR = 'LINEAR'
+    SQRT = 'SQRT'
     # POWER = 3
-    ASIN = 4
+    ASIN = 'ASIN'
+
+    def __str__(self):
+        return self.value
 
 
+# noinspection PyArgumentList
 class TextureOutput(EventDispatcher):
-    stretch_type = ObjectProperty(StretchType.SQRT, rebind=True)
+    stretch_type = ConfigParserProperty(None, 'view', 'stretch', 'app', val_type=StretchType)
     do_stretch = BooleanProperty(False)
 
     _stretch = {
