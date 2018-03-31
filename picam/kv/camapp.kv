@@ -1,6 +1,5 @@
 #: include plotscreen.kv
 #: include dropdowns.kv
-#: include settings.kv
 #: import CamScreen picam.camscreen.CamScreen
 #: import QScreenManager picam.qscreenmanager.QScreenManager
 
@@ -39,9 +38,6 @@ FloatLayout:
                     id: plot_screen
                     on_enter: cam.measure = True
                     on_leave: cam.measure = False
-                SettingsScreen:
-                    id: settings_screen
-                    name: 'settings'
 
             Label:
                 size_hint: None, None
@@ -105,18 +101,6 @@ FloatLayout:
                 size: self.size
                 pos: self.pos
 
-        # focus options
-        FocusDropDown:
-            id: focus_dropdown
-            on_select:
-                cam.measure_type = args[1]
-
-        # stretch options
-        StretchDropDown:
-            id: stretch_dropdown
-            on_select:
-                cam.texout.stretch_type = args[1]
-
         BoxLayout:
             orientation: 'vertical'
             spacing: 5
@@ -128,20 +112,6 @@ FloatLayout:
                 source: 'atom.png' if not cam.texout.do_stretch else 'atom_on.png'
                 on_press: cam.texout.do_stretch = not cam.texout.do_stretch
 
-            # choose which stretch to use
-            Button:
-                size: '45dp', '40dp'
-                size_hint: None, None
-                text: cam.texout.stretch_type.name
-                on_press: stretch_dropdown.open(self)
-
-            # choose which focus method to use
-            Button:
-                size: '45dp', '40dp'
-                size_hint: None, None
-                text: cam.measure_type.name
-                on_press: focus_dropdown.open(self)
-
             ImageButton:
                 id: zoom_button
                 source: {1:'zoom.png',2:'zoom_1.png',3:'zoom_2.png'}[cam.zoom_factor]
@@ -149,7 +119,6 @@ FloatLayout:
 
             ImageButton:
                 source: 'advanced_settings.png'
-                on_press: sm.toggle('settings')
-
+                on_press: app.open_settings()
 
             Widget: # spacer

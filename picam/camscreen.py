@@ -1,33 +1,40 @@
 import time
 from enum import Enum
-from math import sqrt
 
-import cv2
-import numpy as np
-from kivy.properties import ObjectProperty, BooleanProperty, NumericProperty, StringProperty
+from kivy.properties import ObjectProperty, BooleanProperty, NumericProperty, ConfigParserProperty
 from kivy.uix.screenmanager import Screen
-from photutils import find_peaks
-from photutils.centroids import fit_2dgaussian
 
 import picam.config as cfg
 from picam.fake import FakeSource
-from picam.utils import threaded
+from picam.maths import measure_hfr, measure_lp
+from picam.utils import threaded, set_camera_mode, print_sensor
 from .textureoutput import TextureOutput
 
 
 class MeasureType(Enum):
-    HFR = 1
-    LP = 2
+    HFR = 'HFR'
+    LP = 'LP'
+
+    def __str__(self):
+        return self.value
 
 
+# noinspection PyArgumentList
 class CamScreen(Screen):
     tex = ObjectProperty(None)
     recording = BooleanProperty(False)
     playing = BooleanProperty(False)
-    measure_type = ObjectProperty(MeasureType.HFR, rebind=True)
-    measure_frequency = NumericProperty(cfg.MEASURE_RATE)
+    measure_type = ConfigParserProperty(None, 'view', 'focus', 'app', val_type=MeasureType)
+    measure_frequency = ConfigParserProperty(5, 'view', 'focus_rate', 'app', val_type=int)
     measure = False
     zoom_factor = NumericProperty(1)  # todo more options (set in cfg?)
+
+    iso = ConfigParserProperty(None, 'camera', 'iso', 'app', val_type=int,
+                               verify=lambda x: 100 <= x <= 800, errorvalue=800)
+    framerate = ConfigParserProperty(None, 'camera', 'framerate', 'app', val_type=int,
+                                     verify=lambda x: 1 <= x <= 90, errvalue=10)
+    exposure_mode = ConfigParserProperty(None, 'camera', 'exposure_mode', 'app')
+    sensor_mode = ConfigParserProperty(None, 'camera', 'sensor_mode', 'app')
 
     _measure_tick = 0
 
@@ -39,13 +46,37 @@ class CamScreen(Screen):
         self.tex = self.texout.texture
 
     def on_new_measure(self, fm):
+        print(self.measure_type, fm)
         pass
 
+    # noinspection PyAttributeOutsideInit
     def init(self, camera):
         self.register_event_type('on_new_measure')
 
         self.cam = camera
         self.texout.bind(on_update=self._texture_update)
+
+        # todo set mode/framerate?
+
+    def on_iso(self, _, value):
+        print('iso', value)
+        if not cfg.FAKE:
+            self.cam.iso = value
+
+    def on_framerate(self, _, value):
+        print('framerate', value)
+        if not cfg.FAKE:
+            set_camera_mode(self.cam, self.exposure_mode, framerate=value)
+
+    def on_sensor_mode(self, _, value):
+        print('mode', value)
+        if not cfg.FAKE:
+            set_camera_mode(self.cam, self.exposure_mode, mode=value)
+
+    def on_exposure_mode(self, _, value):
+        print('exposure_mode', value)
+        if not cfg.FAKE:
+            self.cam.exposure_mode = value
 
     def play(self):
         print('play')
@@ -66,6 +97,7 @@ class CamScreen(Screen):
 
                 run_fake_source()
             else:
+                print_sensor(cam)
                 self.cam.start_recording(self.texout, 'rgb', resize=(320, 240))
         else:
             if cfg.FAKE:
@@ -89,13 +121,15 @@ class CamScreen(Screen):
                 self.cam.stop_recording(splitter_port=2)
 
     def zoom(self):  # todo make zoom switch source directories in fake mode?
-        zf = self.zoom_factor + 1
-        self.zoom_factor = zf if zf <= 3 else 1
+        if cfg.FAKE:
+            self._fake_source.zoom()
+        else:
+            zf = self.zoom_factor + 1
+            self.zoom_factor = zf if zf <= 3 else 1
 
-        scale = 1.0 if self.zoom_factor == 1 else 1.0 / self.zoom_factor
-        offset = 0.0 if self.zoom_factor == 1 else (1.0 - scale) / 2.0
-        print('new zoom:', self.zoom_factor, scale, offset)
-        if not cfg.FAKE:
+            scale = 1.0 if self.zoom_factor == 1 else 1.0 / self.zoom_factor
+            offset = 0.0 if self.zoom_factor == 1 else (1.0 - scale) / 2.0
+            print('new zoom:', self.zoom_factor, scale, offset)
             self.cam.zoom = (offset, offset, scale, scale)
 
     def _texture_update(self, _, buf):
@@ -107,57 +141,11 @@ class CamScreen(Screen):
                 if self.measure_type is MeasureType.HFR:
                     fm = measure_hfr(buf)
                 elif self.measure_type is MeasureType.LP:
-                    fm = measure_focus(buf)
+                    fm = measure_lp(buf)
                 else:
                     fm = 0
                 # fm = measure_fwhm(buf)
                 self.dispatch('on_new_measure', fm)
-
-
-def measure_focus(buf):
-    im = np.frombuffer(buf, dtype=np.uint8).reshape((240, 320, 3))
-    im = np.roll(im, 1, axis=-1)
-    gray = cv2.cvtColor(im, cv2.COLOR_RGB2GRAY)
-    return cv2.Laplacian(gray, cv2.CV_64F).var()
-
-
-def measure_fwhm(buf):
-    im = np.frombuffer(buf, dtype=np.uint8).reshape((240, 320, 3))
-    fit = fit_2dgaussian(im[:, :, 1])
-    # print(fit)
-    f = sqrt(fit.x_stddev ** 2 + fit.y_stddev ** 2) * 2.3548200450309493
-    # print('f=', f)
-    return f
-
-
-def measure_hfr(buf):
-    im = np.frombuffer(buf, dtype=np.uint8).reshape((240, 320, 3))
-
-    # sub background
-    median = np.median(im[:, :, 1])
-    Im = im[:, :, 1] - median
-
-    # find star
-    max = np.max(Im)
-    tbl = find_peaks(Im, max - median, box_size=100, subpixel=False)
-    x, y = int(tbl['x_peak'][0]), int(tbl['y_peak'][0])
-
-    # improve center estimate by centroid
-    d = 50
-    X, Y = np.arange(x - d, x + d), np.arange(y - d, y + d)
-    V = Im[X, Y]
-    D = sum(V)
-    x = int(sum(V * X) / D)
-    y = int(sum(V * Y) / D)
-
-    # use new center for hfr
-    X, Y = np.arange(x - d, x + d), np.arange(y - d, y + d)
-    V = Im[X, Y]
-
-    D = np.array(np.vstack((X - x, Y - y)))
-    D = np.linalg.norm(D, axis=0)
-    hfr = np.sum(V * D) / np.sum(V)
-    return hfr
 
 
 if __name__ == '__main__':
@@ -165,9 +153,6 @@ if __name__ == '__main__':
 
     with open('3/frame-560.932599', 'rb') as f:
         buf = f.read()
-
-    # measure_hfr(buf)
-    # exit(0)
 
     # N = 10
     # start = timer()
@@ -186,6 +171,6 @@ if __name__ == '__main__':
     N = 10
     start = timer()
     for i in range(N):
-        measure_focus(buf)
+        measure_lp(buf)
     end = timer()
     print(f'focus time: {(end-start)/N}')
