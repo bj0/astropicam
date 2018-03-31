@@ -1,0 +1,82 @@
+[
+  {
+    "type": "title",
+    "title": "View"
+  },
+  {
+    "type": "options",
+    "title": "Stretch",
+    "desc": "view stretch method",
+    "section": "view",
+    "key": "stretch",
+    "options": [
+      "SQRT",
+      "ASIN",
+      "LINEAR"
+    ]
+  },
+  {
+    "type": "options",
+    "title": "Focus",
+    "desc": "focus measure method",
+    "section": "view",
+    "key": "focus",
+    "options": [
+      "HFR",
+      "LP"
+    ]
+  },
+  {
+    "type": "numeric",
+    "title": "Focus Rate",
+    "desc": "measure focus ever N frames",
+    "section": "view",
+    "key": "focus_rate"
+  },
+  {
+    "type": "title",
+    "title": "Camera"
+  },
+  {
+    "type": "options",
+    "title": "Exposure Mode",
+    "desc": "camera auto exposure mode",
+    "section": "camera",
+    "key": "exposure_mode",
+    "options": [
+      "off",
+      "auto",
+      "night"
+    ]
+  },
+  {
+    "type": "numeric",
+    "title": "Framerate",
+    "desc": "video framerate",
+    "section": "camera",
+    "key": "framerate"
+  },
+  {
+    "type": "numeric",
+    "title": "ISO",
+    "desc": "camera iso",
+    "section": "camera",
+    "key": "iso"
+  },
+  {
+    "type": "options",
+    "title": "Sensor Mode",
+    "desc": "sensor mode",
+    "section": "camera",
+    "key": "sensor_mode",
+    "options": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7"
+    ]
+  }
+]

@@ -24,6 +24,26 @@ class CamApp(App):
         super(CamApp, self).__init__()
         self.cam = camera
 
+        # settings are in app path
+        resources.resource_add_path(self.directory)
+
+    def build_config(self, config):
+        config.setdefaults('view', {
+            'stretch': 'SQRT',
+            'focus': 'HFR',
+            'focus_rate': 5
+        })
+        config.setdefaults('camera', {
+            'exposure_mode': 'off',
+            'framerate': 10,
+            'iso': 800,
+            'sensor_mode': 4
+        })
+
+    def build_settings(self, settings):
+        settings.add_json_panel('picam', self.config, resources.resource_find('settings.json'))
+
+    # noinspection PyAttributeOutsideInit
     def build(self):
         # load root
         root = Builder.load_file('camapp.kv')
